@@ -16,5 +16,14 @@ namespace wwc
         {
             InitializeComponent();
         }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            //Toto sa zavola po vytvoreni okna - zatial staci takto neskor to dame na tlacidlo 
+            WwcMain main = new WwcMain(printBox);
+            main.test();
+            main.startProgram();
+        }
+
     }
 }
