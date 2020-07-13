@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using vJoyInterfaceWrap;
 using WiimoteLib;
 
 
@@ -13,24 +15,237 @@ namespace wwc
 {
     class WwcMain
     {
-        Wiimote remote = new Wiimote();
+        Wiimote remote1 = new Wiimote();
         Wiimote remote2 = new Wiimote();
         Point2D[] wiimotePointsNormalized = new Point2D[4];
-        
 
+        vJoy controller1 = new vJoy();
+        vJoy controller2 = new vJoy();
 
 
 
         private TextBox printBox;
+
+
         public WwcMain(TextBox printBoxInc)
         {
             this.printBox = printBoxInc;
         }
 
-        public void test()
+
+        private void connectController(Wiimote con, vJoy vCon, uint id)
         {
-            printMsg("Hello there");
-            printMsg("Added msg");
+            //Netreba??
+            //vJoy.vConState iReport;
+            //iReport = new vJoy.vConState();
+
+            // Device ID can only be in the range 1-16
+            if (id <= 0 || id > 16)
+            {
+                printMsg("Illegal device ID " +id.ToString()+"\nExit!");
+                return;
+            }
+
+            // Get the driver attributes (Vendor ID, Product ID, Version Number)
+            if (!vCon.vJoyEnabled())
+            {
+                printMsg("vJoy driver not enabled: Failed Getting vJoy attributes.\n");
+                return;
+            }
+            else
+                printMsg("Vendor: " + vCon.GetvJoyManufacturerString() + "\nProduct :"+ vCon.GetvJoyProductString() + "\nVersion Number:" +
+                    vCon.GetvJoySerialNumberString() + "\n"); 
+                   
+
+            // Get the state of the requested device
+            VjdStat status = vCon.GetVJDStatus(id);
+            switch (status)
+            {
+                case VjdStat.VJD_STAT_OWN:
+                    printMsg("vJoy Device "+id.ToString()+" is already owned by this feeder\n");
+                    break;
+                case VjdStat.VJD_STAT_FREE:
+                    printMsg("vJoy Device "+id.ToString()+" is free\n");
+                    break;
+                case VjdStat.VJD_STAT_BUSY:
+                    printMsg("vJoy Device "+id.ToString()+" is already owned by another feeder\nCannot continue\n");
+                    return;
+                case VjdStat.VJD_STAT_MISS:
+                    printMsg("vJoy Device "+id.ToString()+" is not installed or disabled\nCannot continue\n");
+                    return;
+                default:
+                    printMsg("vJoy Device "+id.ToString()+" general error\nCannot continue\n");
+                    return;
+            };
+
+            // Check which axes are supported
+            bool AxisX = vCon.GetVJDAxisExist(id, HID_USAGES.HID_USAGE_X);
+            bool AxisY = vCon.GetVJDAxisExist(id, HID_USAGES.HID_USAGE_Y);
+            bool AxisZ = vCon.GetVJDAxisExist(id, HID_USAGES.HID_USAGE_Z);
+            bool AxisRX = vCon.GetVJDAxisExist(id, HID_USAGES.HID_USAGE_RX);
+            bool AxisRZ = vCon.GetVJDAxisExist(id, HID_USAGES.HID_USAGE_RZ);
+            // Get the number of buttons and POV Hat switchessupported by this vJoy device
+            int nButtons = vCon.GetVJDButtonNumber(id);
+            int ContPovNumber = vCon.GetVJDContPovNumber(id);
+            int DiscPovNumber = vCon.GetVJDDiscPovNumber(id);
+
+            // Print results
+            printMsg("\nvJoy Device" + id.ToString() + " capabilities:\n");
+            printMsg("Numner of buttons\t\t" + nButtons.ToString() + "\n");
+            printMsg("Numner of Continuous POVs\t" + ContPovNumber.ToString() + "\n");
+            printMsg("Numner of Descrete POVs\t\t" + DiscPovNumber.ToString() + "\n");
+
+            if (AxisX)
+            {
+                printMsg("Axis X\t\tYES\n");
+                printMsg("Axis Y\t\tYES\n");
+                printMsg("Axis Z\t\tYES\n");
+            }
+            else
+            {
+                printMsg("Axis X\t\tNO\n");
+                printMsg("Axis Y\t\tNO\n");
+                printMsg("Axis Z\t\tNO\n");
+            }
+            if(AxisRX)
+            {
+                printMsg("Axis Rx\t\tYES\n");
+            }
+            else
+            {
+                printMsg("Axis Rx\t\tNO\n");
+            }
+
+            if(AxisRZ)
+            {
+                printMsg("Axis Rz\t\tYES\n");
+            }
+            else
+            {
+                printMsg("Axis Rz\t\tYES\n");
+            }
+
+
+            // Test if DLL matches the driver
+            UInt32 DllVer = 0, DrvVer = 0;
+            bool match = vCon.DriverMatch(ref DllVer, ref DrvVer);
+            if (match)
+                printMsg("Version of Driver Matches DLL Version "+ DllVer.ToString() + ")\n");
+            else
+                printMsg("Version of Driver "+ DrvVer.ToString() + " does NOT match DLL Version "+DllVer.ToString()+"\n");
+
+
+            // Acquire the target
+            if ((status == VjdStat.VJD_STAT_OWN) || ((status == VjdStat.VJD_STAT_FREE) && (!vCon.AcquireVJD(id))))
+            {
+                printMsg("Failed to acquire vJoy device number "+id.ToString()+".\n");
+                return;
+            }
+            else
+                printMsg("Acquired: vJoy device number "+id.ToString()+".\n");
+
+            //Tuto treba dat nieco rozumnejsie
+            for(int i=5; i>0;i--)
+            {
+                printMsg("SLEEPING " + i.ToString());
+                Thread.Sleep(1000);
+            }
+
+            int X, Y, Z, ZR, XR;
+            uint count = 0;
+            long maxval = 0;
+
+            X = 20;
+            Y = 30;
+            Z = 40;
+            XR = 60;
+            ZR = 80;
+
+            vCon.GetVJDAxisMax(id, HID_USAGES.HID_USAGE_X, ref maxval);
+
+            bool res;
+            // Reset this device to default values
+            vCon.ResetVJD(id);
+
+
+            bool done = false;
+
+
+            while (!done)
+            {
+                try
+                {
+                    printMsg("3");
+                    Wiimote test = connectController(con);
+                    if (test == null)
+                        printMsg("ERROR CONENCTION!");
+                    else
+                    {
+                        printMsg("conenction fine");
+                        con = test;
+                    }
+
+                    done = true;
+                }
+                catch (Exception e)
+                {
+                    done = false;
+                    printMsg("Not found!");
+                }
+
+            }
+
+            printMsg(con.WiimoteState.ExtensionType.ToString());
+
+        }
+
+        static private void wiiDevice_WiimoteChanged(object sender, WiimoteChangedEventArgs e)
+        {
+            // Called every time there is a sensor update, values available using e.WiimoteState.
+            // Use this for tracking and filtering rapid accelerometer and gyroscope sensor data.
+            // The balance board values are basic, so can be accessed directly only when needed.
+        }
+
+        static private void wiiDevice_WiimoteExtensionChanged(object sender, WiimoteExtensionChangedEventArgs e)
+        {
+            // This is not needed for balance boards.
+        }
+
+        static Wiimote connectController(Wiimote wiiDeviceInc)
+        {
+            try
+            {
+                // Find all connected Wii devices.
+
+                var deviceCollection = new WiimoteCollection();
+                deviceCollection.FindAllWiimotes();
+
+                //printMsg("Device count: "+deviceCollection.Count.ToString());
+
+                Wiimote wiiDevice = deviceCollection[0];
+
+                // Device type can only be found after connection, so prompt for multiple devices.
+
+                // Setup update handlers.
+
+                wiiDevice.WiimoteChanged += wiiDevice_WiimoteChanged;
+                wiiDevice.WiimoteExtensionChanged += wiiDevice_WiimoteExtensionChanged;
+
+                // Connect and send a request to verify it worked.
+
+                wiiDevice.Connect();
+                wiiDevice.SetReportType(InputReport.IRAccel, false); // FALSE = DEVICE ONLY SENDS UPDATES WHEN VALUES CHANGE!
+                wiiDevice.SetLEDs(true, false, false, false);
+
+                return wiiDevice;
+
+            }
+            catch (Exception ex)
+            {
+                //ex.StackTrace();
+                return null;
+            }
+
         }
 
 
@@ -40,9 +255,6 @@ namespace wwc
             printBox.AppendText(msg+Environment.NewLine);
         }
 
-
-
-        
         public void startProgram()
         {
             float dotDistanceInMM = 8.5f * 25.4f;//width of the wii sensor bar
@@ -50,7 +262,9 @@ namespace wwc
             float screenHeightinMM = 20 * 25.4f;
             float radiansPerPixel = (float)(Math.PI / 4) / 1024.0f; //45 degree field of view with a 1024x768 camera
                                                                     //toto sa bude este menit na zaklade realneho modelu co postavim
-            //remote.WiimoteState.AccelCalibrationInfo.X0
+                                                                    //remote.WiimoteState.AccelCalibrationInfo.X0
+
+            connectController(remote1, controller1,1);
         }
 
        

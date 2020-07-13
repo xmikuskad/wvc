@@ -21,7 +21,6 @@ namespace wwc
         {
             //Toto sa zavola po vytvoreni okna - zatial staci takto neskor to dame na tlacidlo 
             WwcMain main = new WwcMain(printBox);
-            main.test();
             main.startProgram();
         }
 
