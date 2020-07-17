@@ -90,7 +90,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="vJoyInterfaceWrap, Version=0.2.1.6, Culture=neutral, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\wii\pozlozka\pozlozka\vJoyInterfaceWrap.dll</HintPath>
+      <HintPath>.\vJoyInterfaceWrap.dll</HintPath>
     </Reference>
     <Reference Include="WiimoteLib, Version=1.8.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

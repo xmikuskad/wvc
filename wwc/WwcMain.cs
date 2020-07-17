@@ -26,10 +26,12 @@ namespace wwc
         private TextBox printBox;
 
         //------------------------bude sa to menit podla modelu
+        
         float dotDistanceInMM = 8.5f * 25.4f;//width of the wii sensor bar
         float screenHeightinMM = 20 * 25.4f;
         float radiansPerPixel = (float)(Math.PI / 4) / 1024.0f; //45 degree field of view with a 1024x768 camera
         float movementScaling = 1.0f;
+        
         //-----------------------------------
         float headX = 0;
         float headY = 0;
@@ -445,21 +447,7 @@ namespace wwc
         {
             printBox.AppendText(msg+Environment.NewLine);
         }
-
-
-        public void startProgram()
-        {
-            float dotDistanceInMM = 8.5f * 25.4f;//width of the wii sensor bar
-            float movementScaling = 1.0f;
-            float screenHeightinMM = 20 * 25.4f;
-            float radiansPerPixel = (float)(Math.PI / 4) / 1024.0f; //45 degree field of view with a 1024x768 camera
-                                                                    //toto sa bude este menit na zaklade realneho modelu co postavim
-                                                                    //remote.WiimoteState.AccelCalibrationInfo.X0
-
-            connectController(remote1, controller1,1);
-        }
-
-       
+     
 
     
 
